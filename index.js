@@ -37,6 +37,7 @@ async function run() {
 
 		const menuCollection = client.db("bistroDb").collection("menu");
 		const reviewsCollection = client.db("bistroDb").collection("reviews");
+		const cartCollection = client.db("bistroDb").collection("cart");
 
 		app.get("/menu", logger, async (req, res) => {
 			try {
@@ -51,6 +52,17 @@ async function run() {
 		app.get("/reviews", logger, async (req, res) => {
 			try {
 				const result = await reviewsCollection.find().toArray();
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
+		app.post("/carts", logger, async (req, res) => {
+			try {
+				const cartItem = req.body;
+				const result = await cartCollection.insertOne(cartItem);
 				res.send(result);
 			} catch (error) {
 				console.error("error: ", error);
