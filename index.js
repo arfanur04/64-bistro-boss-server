@@ -59,6 +59,16 @@ async function run() {
 			}
 		});
 
+		app.get("/carts", logger, async (req, res) => {
+			try {
+				const result = await cartCollection.find().toArray();
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
 		app.post("/carts", logger, async (req, res) => {
 			try {
 				const cartItem = req.body;
@@ -69,6 +79,16 @@ async function run() {
 				res.status(500).send({ message: "Internal Server Error" });
 			}
 		});
+
+		// app.get("/carts-delete", logger, async (req, res) => {
+		// 	try {
+		// 		const result = await cartCollection.deleteMany({});
+		// 		res.send(result);
+		// 	} catch (error) {
+		// 		console.error("error: ", error);
+		// 		res.status(500).send({ message: "Internal Server Error" });
+		// 	}
+		// });
 
 		// Send a ping to confirm a successful connection
 		// await client.db("admin").command({ ping: 1 });
