@@ -61,7 +61,9 @@ async function run() {
 
 		app.get("/carts", logger, async (req, res) => {
 			try {
-				const result = await cartCollection.find().toArray();
+				const email = req.query.email;
+				const query = { email };
+				const result = await cartCollection.find(query).toArray();
 				res.send(result);
 			} catch (error) {
 				console.error("error: ", error);
