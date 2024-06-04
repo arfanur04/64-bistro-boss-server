@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zxotz8q.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -35,9 +35,22 @@ async function run() {
 		// Connect the client to the server	(optional starting in v4.7)
 		// await client.connect();
 
-		const menuCollection = client.db("bistroDb").collection("menu");
-		const reviewsCollection = client.db("bistroDb").collection("reviews");
-		const cartCollection = client.db("bistroDb").collection("cart");
+		const database = client.db("bistroDb");
+
+		const userCollection = database.collection("users");
+		const menuCollection = database.collection("menu");
+		const reviewsCollection = database.collection("reviews");
+		const cartCollection = database.collection("carts");
+
+		// user related api
+		app.post("/users", logger, async (req, res) => {
+			try {
+				res.send(await userCollection.insertOne(req.body));
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
 
 		app.get("/menu", logger, async (req, res) => {
 			try {
@@ -82,18 +95,49 @@ async function run() {
 			}
 		});
 
-		// app.get("/carts-delete", logger, async (req, res) => {
-		// 	try {
-		// 		const result = await cartCollection.deleteMany({});
-		// 		res.send(result);
-		// 	} catch (error) {
-		// 		console.error("error: ", error);
-		// 		res.status(500).send({ message: "Internal Server Error" });
-		// 	}
-		// });
+		app.delete("/carts/:id", logger, async (req, res) => {
+			try {
+				const id = req.params.id;
+				const query = { _id: new ObjectId(id) };
+				const result = await cartCollection.deleteOne(query);
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
+		app.get("/m", logger, async (req, res) => {
+			try {
+				//: get
+				if (req.query.c) {
+					const collectionName = database.collection(req.query.c);
+					res.send(await collectionName.find().toArray());
+				}
+				//: delete
+				// else if (req.query.d) {
+				// 	const collectionName = database.collection(req.query.d);
+				// 	res.send(await collectionName.deleteMany({}));
+				// }
+				//: post
+				// const doc2 = array of object;
+				// else if (req.query.p) {
+				// 	const collectionName = database.collection(req.query.p);
+				// 	res.send(await collectionName.insertMany(doc2, { ordered: true }));
+				// }
+				//
+				else {
+					res.send({ message: "else" });
+				}
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
 
 		// Send a ping to confirm a successful connection
 		// await client.db("admin").command({ ping: 1 });
+
 		console.log(
 			"Pinged your deployment. You successfully connected to MongoDB!"
 		);
