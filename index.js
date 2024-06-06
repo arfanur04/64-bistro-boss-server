@@ -45,7 +45,29 @@ async function run() {
 		// user related api
 		app.post("/users", logger, async (req, res) => {
 			try {
-				res.send(await userCollection.insertOne(req.body));
+				const user = req.body;
+				// insert email if user doesn't exist.
+				// you can do this many ways (1. email_unique, 2. upsert, 3. simple checking)
+				const filter = { email: user.email };
+				const existingUser = await userCollection.findOne(filter);
+				if (existingUser) {
+					const update = {
+						$set: {
+							updatedAt: user.updatedAt,
+							updatedLocal: user.updatedLocal,
+						},
+					};
+					const result = await userCollection.updateOne(filter, update);
+					return res.send([
+						{
+							message: "User already exists",
+							insertedId: null,
+						},
+						result,
+					]);
+				}
+
+				res.send(await userCollection.insertOne(user));
 			} catch (error) {
 				console.error("error: ", error);
 				res.status(500).send({ message: "Internal Server Error" });
