@@ -44,8 +44,13 @@ async function run() {
 
 		// user related api
 		app.get("/users", logger, async (req, res) => {
-			const result = await userCollection.find().toArray();
-			res.send(result);
+			try {
+				const result = await userCollection.find().toArray();
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
 		});
 
 		app.post("/users", logger, async (req, res) => {
@@ -72,6 +77,35 @@ async function run() {
 					]);
 				}
 				res.send(await userCollection.insertOne(user));
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
+		app.patch("/users/admin/:id", logger, async (req, res) => {
+			try {
+				const id = req.params.id;
+				const filter = { _id: new ObjectId(id) };
+				const update = {
+					$set: {
+						role: "admin",
+					},
+				};
+				const result = await userCollection.updateOne(filter, update);
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
+		app.delete("/users/:id", logger, async (req, res) => {
+			try {
+				const id = req.params.id;
+				const query = { _id: new ObjectId(id) };
+				const result = await userCollection.deleteOne(query);
+				res.send(result);
 			} catch (error) {
 				console.error("error: ", error);
 				res.status(500).send({ message: "Internal Server Error" });
