@@ -43,6 +43,11 @@ async function run() {
 		const cartCollection = database.collection("carts");
 
 		// user related api
+		app.get("/users", logger, async (req, res) => {
+			const result = await userCollection.find().toArray();
+			res.send(result);
+		});
+
 		app.post("/users", logger, async (req, res) => {
 			try {
 				const user = req.body;
@@ -66,7 +71,6 @@ async function run() {
 						result,
 					]);
 				}
-
 				res.send(await userCollection.insertOne(user));
 			} catch (error) {
 				console.error("error: ", error);
