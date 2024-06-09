@@ -31,6 +31,20 @@ const logger = (req, res, next) => {
 	}
 };
 
+const verifyToken = (req, res, next) => {
+	try {
+		if (!req.headers.authorization) {
+			return res.status(401).send({ message: "Forbidden access" });
+		}
+		const token = req.headers.authorization.split(" ")[1];
+
+		next();
+	} catch (error) {
+		console.error("error: ", error);
+		res.status(500).send({ message: "Internal Server Error" });
+	}
+};
+
 async function run() {
 	try {
 		// Connect the client to the server	(optional starting in v4.7)
@@ -43,8 +57,22 @@ async function run() {
 		const reviewsCollection = database.collection("reviews");
 		const cartCollection = database.collection("carts");
 
+		// jwt related api
+		app.post("/jwt", logger, async (req, res) => {
+			try {
+				const user = req.body;
+				const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+					expiresIn: "1h",
+				});
+				res.send({ token });
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
 		// user related api
-		app.get("/users", logger, async (req, res) => {
+		app.get("/users", logger, verifyToken, async (req, res) => {
 			try {
 				const result = await userCollection.find().toArray();
 				res.send(result);
