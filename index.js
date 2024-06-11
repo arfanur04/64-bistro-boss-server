@@ -35,16 +35,29 @@ const verifyToken = (req, res, next) => {
 	try {
 		// console.log(req.headers);
 		if (!req.headers.authorization) {
-			return res.status(401).send({ message: "forbidden access" });
+			return res.status(401).send({ message: "unauthorized access" });
 		}
 		const token = req.headers.authorization.split(" ")[1];
 		jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
 			if (err) {
-				return res.status(401).send({ message: "forbidden access" });
+				return res.status(401).send({ message: "unauthorized access" });
 			}
 			req.decoded = decoded;
 			next();
 		});
+	} catch (error) {
+		console.error("error: ", error);
+		res.status(500).send({ message: "Internal Server Error" });
+	}
+};
+
+// use after verifyToken
+const verifyQueryEmail = (req, res, next) => {
+	try {
+		if (req.query.email !== req.decoded.email) {
+			return res.status(403).send({ message: "forbidden access" });
+		}
+		next();
 	} catch (error) {
 		console.error("error: ", error);
 		res.status(500).send({ message: "Internal Server Error" });
@@ -57,11 +70,29 @@ async function run() {
 		// await client.connect();
 
 		const database = client.db("bistroDb");
-
+		//
 		const userCollection = database.collection("users");
 		const menuCollection = database.collection("menu");
 		const reviewsCollection = database.collection("reviews");
 		const cartCollection = database.collection("carts");
+
+		//: middleware
+		// use after verifyToken
+		const verifyAdmin = async (req, res, next) => {
+			try {
+				const email = req.decoded.email;
+				const query = { email };
+				const user = await userCollection.findOne(query);
+				const isAdmin = user?.role === "admin";
+				if (!isAdmin) {
+					return res.status(403).send({ message: "forbidden access" });
+				}
+				next();
+			} catch (error) {
+				console.error("error: ", error);
+				return res.status(500).send({ message: "Internal Server Error" });
+			}
+		};
 
 		// jwt related api
 		app.post("/jwt", logger, async (req, res) => {
@@ -77,11 +108,12 @@ async function run() {
 			}
 		});
 
+		// check isAdmin
 		app.get("/users/admin/:email", logger, verifyToken, async (req, res) => {
 			try {
 				const email = req.params.email;
 				if (email !== req.decoded.email) {
-					return res.status(403).send({ message: "unauthorized access" });
+					return res.status(403).send({ message: "forbidden access" });
 				}
 				const query = { email };
 				const user = await userCollection.findOne(query);
@@ -92,11 +124,11 @@ async function run() {
 				res.send({ admin });
 			} catch (error) {
 				console.error("error: ", error);
-				res.status(500).send({ message: "Internal Server Error" });
+				return res.status(500).send({ message: "Internal Server Error" });
 			}
 		});
 
-		app.get("/users", logger, verifyToken, async (req, res) => {
+		app.get("/users", logger, verifyToken, verifyAdmin, async (req, res) => {
 			try {
 				const result = await userCollection.find().toArray();
 				res.send(result);
@@ -136,35 +168,47 @@ async function run() {
 			}
 		});
 
-		app.patch("/users/admin/:id", logger, async (req, res) => {
-			try {
-				const id = req.params.id;
-				const filter = { _id: new ObjectId(id) };
-				const update = {
-					$set: {
-						role: "admin",
-						roleUpdated: new Date().toISOString(),
-					},
-				};
-				const result = await userCollection.updateOne(filter, update);
-				res.send(result);
-			} catch (error) {
-				console.error("error: ", error);
-				res.status(500).send({ message: "Internal Server Error" });
+		app.patch(
+			"/users/admin/:id",
+			logger,
+			verifyToken,
+			verifyAdmin,
+			async (req, res) => {
+				try {
+					const id = req.params.id;
+					const filter = { _id: new ObjectId(id) };
+					const update = {
+						$set: {
+							role: "admin",
+							roleUpdated: new Date().toISOString(),
+						},
+					};
+					const result = await userCollection.updateOne(filter, update);
+					res.send(result);
+				} catch (error) {
+					console.error("error: ", error);
+					res.status(500).send({ message: "Internal Server Error" });
+				}
 			}
-		});
+		);
 
-		app.delete("/users/:id", logger, async (req, res) => {
-			try {
-				const id = req.params.id;
-				const query = { _id: new ObjectId(id) };
-				const result = await userCollection.deleteOne(query);
-				res.send(result);
-			} catch (error) {
-				console.error("error: ", error);
-				res.status(500).send({ message: "Internal Server Error" });
+		app.delete(
+			"/users/:id",
+			logger,
+			verifyToken,
+			verifyAdmin,
+			async (req, res) => {
+				try {
+					const id = req.params.id;
+					const query = { _id: new ObjectId(id) };
+					const result = await userCollection.deleteOne(query);
+					res.send(result);
+				} catch (error) {
+					console.error("error: ", error);
+					res.status(500).send({ message: "Internal Server Error" });
+				}
 			}
-		});
+		);
 
 		app.get("/menu", logger, async (req, res) => {
 			try {
