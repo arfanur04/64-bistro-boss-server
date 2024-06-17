@@ -220,6 +220,17 @@ async function run() {
 			}
 		});
 
+		app.post("/menu", logger, verifyToken, verifyAdmin, async (req, res) => {
+			try {
+				const menuItem = req.body;
+				const result = await menuCollection.insertOne(menuItem);
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
 		app.get("/reviews", logger, async (req, res) => {
 			try {
 				const result = await reviewsCollection.find().toArray();
@@ -270,12 +281,26 @@ async function run() {
 				//: get
 				if (req.query.c) {
 					const collectionName = database.collection(req.query.c);
-					res.send(await collectionName.find().toArray());
+					const result = await collectionName
+						.find()
+						.sort({ _id: -1 })
+						.toArray();
+					const estimate = await collectionName.estimatedDocumentCount();
+					res.send([{ estimate }, ...result]);
 				}
-				//: delete
+				//: delete all
 				// else if (req.query.d) {
 				// 	const collectionName = database.collection(req.query.d);
 				// 	res.send(await collectionName.deleteMany({}));
+				// }
+				//: delete single
+				// http://localhost:5000/m?d=menu&id=666f02f024cd4588f4612851
+				// else if (req.query.d && req.query.id) {
+				// 	const collectionName = database.collection(req.query.d);
+				// 	const result = await collectionName.deleteOne({
+				// 		_id: new ObjectId(req.query.id),
+				// 	});
+				// 	res.send(result);
 				// }
 				//: post
 				// const doc2 = array of object;
