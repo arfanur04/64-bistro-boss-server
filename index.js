@@ -295,13 +295,13 @@ async function run() {
 				// }
 				//: delete single
 				// http://localhost:5000/m?d=menu&id=666f02f024cd4588f4612851
-				// else if (req.query.d && req.query.id) {
-				// 	const collectionName = database.collection(req.query.d);
-				// 	const result = await collectionName.deleteOne({
-				// 		_id: new ObjectId(req.query.id),
-				// 	});
-				// 	res.send(result);
-				// }
+				else if (req.query.d && req.query.id) {
+					const collectionName = database.collection(req.query.d);
+					const result = await collectionName.deleteOne({
+						_id: new ObjectId(req.query.id),
+					});
+					res.send(result);
+				}
 				//: post
 				// const doc2 = array of object;
 				// else if (req.query.p) {
