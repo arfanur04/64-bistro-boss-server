@@ -212,7 +212,7 @@ async function run() {
 
 		app.get("/menu", logger, async (req, res) => {
 			try {
-				const result = await menuCollection.find().toArray();
+				const result = await menuCollection.find().sort({ _id: -1 }).toArray();
 				res.send(result);
 			} catch (error) {
 				console.error("error: ", error);
@@ -230,6 +230,24 @@ async function run() {
 				res.status(500).send({ message: "Internal Server Error" });
 			}
 		});
+
+		app.delete(
+			"/menu/:id",
+			logger,
+			verifyToken,
+			verifyAdmin,
+			async (req, res) => {
+				try {
+					const id = req.params.id;
+					const query = { _id: new ObjectId(id) };
+					const result = await menuCollection.deleteOne(query);
+					res.send(result);
+				} catch (error) {
+					console.error("error: ", error);
+					res.status(500).send({ message: "Internal Server Error" });
+				}
+			}
+		);
 
 		app.get("/reviews", logger, async (req, res) => {
 			try {
