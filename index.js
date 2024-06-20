@@ -220,6 +220,18 @@ async function run() {
 			}
 		});
 
+		app.get("/menu/:id", logger, async (req, res) => {
+			try {
+				const id = req.params.id;
+				const query = { _id: new ObjectId(id) };
+				const result = await menuCollection.findOne(query);
+				res.send(result);
+			} catch (error) {
+				console.error("error: ", error);
+				res.status(500).send({ message: "Internal Server Error" });
+			}
+		});
+
 		app.post("/menu", logger, verifyToken, verifyAdmin, async (req, res) => {
 			try {
 				const menuItem = req.body;
@@ -230,6 +242,34 @@ async function run() {
 				res.status(500).send({ message: "Internal Server Error" });
 			}
 		});
+
+		app.patch(
+			"/menu/:id",
+			logger,
+			verifyToken,
+			verifyAdmin,
+			async (req, res) => {
+				try {
+					const id = req.params.id;
+					const filter = { _id: new ObjectId(id) };
+					const options = { upsert: true };
+					const update = {
+						$set: {
+							...req.body,
+						},
+					};
+					const result = await menuCollection.updateOne(
+						filter,
+						update,
+						options
+					);
+					res.send(result);
+				} catch (error) {
+					console.error("error: ", error);
+					res.status(500).send({ message: "Internal Server Error" });
+				}
+			}
+		);
 
 		app.delete(
 			"/menu/:id",
