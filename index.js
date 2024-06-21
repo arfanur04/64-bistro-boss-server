@@ -252,17 +252,12 @@ async function run() {
 				try {
 					const id = req.params.id;
 					const filter = { _id: new ObjectId(id) };
-					const options = { upsert: true };
 					const update = {
 						$set: {
 							...req.body,
 						},
 					};
-					const result = await menuCollection.updateOne(
-						filter,
-						update,
-						options
-					);
+					const result = await menuCollection.updateOne(filter, update);
 					res.send(result);
 				} catch (error) {
 					console.error("error: ", error);
@@ -343,8 +338,8 @@ async function run() {
 						.find()
 						.sort({ _id: -1 })
 						.toArray();
-					const estimate = await collectionName.estimatedDocumentCount();
-					res.send([{ estimate }, ...result]);
+					const estimateCount = await collectionName.estimatedDocumentCount();
+					res.send([{ estimateCount, collectionName: req.query.c }, ...result]);
 				}
 				//: delete all
 				// else if (req.query.d) {
