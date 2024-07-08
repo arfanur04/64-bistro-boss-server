@@ -161,13 +161,11 @@ async function run() {
 						},
 					};
 					const result = await userCollection.updateOne(filter, update);
-					return res.send([
-						{
-							message: "User already exists",
-							insertedId: null,
-						},
-						result,
-					]);
+					return res.send({
+						message: "User already exists",
+						insertedId: null,
+						modifiedCount: result.modifiedCount,
+					});
 				}
 				res.send(await userCollection.insertOne(user));
 			} catch (error) {
@@ -363,12 +361,24 @@ async function run() {
 				//: get
 				if (req.query.c) {
 					const collectionName = database.collection(req.query.c);
+					const estimateCount = await collectionName.estimatedDocumentCount();
+					// const lastUpdated = await collectionName.findOne(
+					// 	{},
+					// 	{ sort: { updatedAt: -1 } }
+					// );
 					const result = await collectionName
 						.find()
-						.sort({ _id: -1 })
+						// .sort({ _id: -1 })
+						.sort({ updatedAt: -1 })
 						.toArray();
-					const estimateCount = await collectionName.estimatedDocumentCount();
-					res.send([{ estimateCount, collectionName: req.query.c }, ...result]);
+					res.send([
+						{
+							estimateCount,
+							collectionName: req.query.c,
+							// lastUpdated,
+						},
+						...result,
+					]);
 				}
 				//: delete all
 				// else if (req.query.d) {
